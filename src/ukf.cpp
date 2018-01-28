@@ -56,15 +56,20 @@ UKF::UKF() {
 
   Hint: one or more values initialized above might be wildly off...
   */
+  
+
+  // Set augmentated state dimension
+  n_aug_ = 7;
+  
   // Set sigma point spraeding parameter
-  lambda_ = 3 - n_x_;
+  lambda_ = 3 - n_aug_;
+  cout << "T:contruction" << endl;
+  weights_ = VectorXd(2 * n_aug_ +1);
   weights_(0) = lambda_ / (lambda_ + n_aug_);
   for (int i=1; i< 2 * n_aug_ + 1; i++){
       weights_(i) = 1/(2 * (lambda_ + n_aug_));
   }
-  
-  // Set augmentated state dimension
-  n_aug_ = 7;
+    
   
   is_initialized_ = false;
 
@@ -85,14 +90,19 @@ void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
   */
   
   /*********Initialization**********/
+  cout << "First check" << endl;
   if (!is_initialized_) {
-	  x_ = VectorXd(5);
-    P_ = MatrixXd::Identity(5,5);  	  
+    cout << "T:initializing" << endl;
+	  x_ = VectorXd(n_x_);
+    P_ = MatrixXd(n_x_, n_x_);
+    P_ = MatrixXd::Identity(n_x_,n_x_);  	
+    cout << meas_package.raw_measurements_ << endl;
     if (meas_package.sensor_type_ == MeasurementPackage::RADAR) {
       // Convert RADA measurement to x_
       // code borrowed from EKF project
+      cout << "RADAR" << endl;
       float ro =  meas_package.raw_measurements_[0];
-        float theta =  meas_package.raw_measurements_[1];
+      float theta =  meas_package.raw_measurements_[1];
       float ro_dot =  meas_package.raw_measurements_[2];		
       x_ << ro * cos(theta), ro * sin(theta), 0, 0, 0;
       MatrixXd Hj_pxpy_inv(2,3);
@@ -112,26 +122,33 @@ void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
     } else if (meas_package.sensor_type_ == MeasurementPackage::LASER) {
       /**
       Initialize state.
-      */	  
+      */	
+      cout << "LASER" << endl;      
       x_ << meas_package.raw_measurements_[0], meas_package.raw_measurements_[1], 0, 0, 0;	  	        
+      cout << "P_" << endl;      
       P_(0, 0) = std_laspx_ * std_laspx_;	  	 
       P_(1, 1) = std_laspy_ * std_laspy_;
+      cout << "time" << endl;      
       time_us_ = meas_package.timestamp_;	 
+      cout << "finish" << endl;      
       is_initialized_ = true;      
     }
 
       // done initializing, no need to predict or update
-      
-      return;
-    }
+    cout << "return" << endl;
+    return;
+  }
   /*********Prediction**********/  
+  cout << "T:predict" << endl;
   Prediction((meas_package.timestamp_ - time_us_) / 1000000.0);
   /*********Update**********/
   
   if (meas_package.sensor_type_ == MeasurementPackage::RADAR) { 
+    cout << "T:RADAR update" << endl;
     UpdateRadar(meas_package);
     time_us_ = meas_package.timestamp_;
   } else {
+    cout << "T:LIDAR update" << endl;
     UpdateLidar(meas_package);
     time_us_ = meas_package.timestamp_;
   }

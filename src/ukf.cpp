@@ -88,19 +88,16 @@ void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
   Complete this function! Make sure you switch between lidar and radar
   measurements.
   */
-  
-  /*********Initialization**********/
-  cout << "First check" << endl;
-  if (!is_initialized_) {
-    cout << "T:initializing" << endl;
+  cout << "Pro" << endl;
+  /*********Initialization**********/    
+  if (!is_initialized_) {   
+    cout << "Initialize" << endl;  
 	  x_ = VectorXd(n_x_);
     P_ = MatrixXd(n_x_, n_x_);
-    P_ = MatrixXd::Identity(n_x_,n_x_);  	
-    cout << meas_package.raw_measurements_ << endl;
+    P_ = MatrixXd::Identity(n_x_,n_x_);  	    
     if (meas_package.sensor_type_ == MeasurementPackage::RADAR) {
       // Convert RADA measurement to x_
-      // code borrowed from EKF project
-      cout << "RADAR" << endl;
+      // code borrowed from EKF project      
       float ro =  meas_package.raw_measurements_[0];
       float theta =  meas_package.raw_measurements_[1];
       float ro_dot =  meas_package.raw_measurements_[2];		
@@ -122,36 +119,33 @@ void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
     } else if (meas_package.sensor_type_ == MeasurementPackage::LASER) {
       /**
       Initialize state.
-      */	
-      cout << "LASER" << endl;      
-      x_ << meas_package.raw_measurements_[0], meas_package.raw_measurements_[1], 0, 0, 0;	  	        
-      cout << "P_" << endl;      
+      */	      
+      x_ << meas_package.raw_measurements_[0], meas_package.raw_measurements_[1], 0, 0, 0;	  	                   
       P_(0, 0) = std_laspx_ * std_laspx_;	  	 
       P_(1, 1) = std_laspy_ * std_laspy_;
-      cout << "time" << endl;      
-      time_us_ = meas_package.timestamp_;	 
-      cout << "finish" << endl;      
+      time_us_ = meas_package.timestamp_;	       
       is_initialized_ = true;      
     }
 
-      // done initializing, no need to predict or update
-    cout << "return" << endl;
+      // done initializing, no need to predict or update    
     return;
   }
-  /*********Prediction**********/  
-  cout << "T:predict" << endl;
-  Prediction((meas_package.timestamp_ - time_us_) / 1000000.0);
+  /*********Prediction**********/    
+  cout << "Predict" << endl;
+  Prediction((meas_package.timestamp_ - time_us_) / 1000000.0);  
+  cout << " DONE" << endl;
   /*********Update**********/
   
-  if (meas_package.sensor_type_ == MeasurementPackage::RADAR) { 
-    cout << "T:RADAR update" << endl;
+  if (meas_package.sensor_type_ == MeasurementPackage::RADAR) {     
+    cout << "RADAR" << endl;
     UpdateRadar(meas_package);
-    time_us_ = meas_package.timestamp_;
-  } else {
-    cout << "T:LIDAR update" << endl;
+    time_us_ = meas_package.timestamp_;    
+  } else {    
+    cout << "LIDAR" << endl;
     UpdateLidar(meas_package);
     time_us_ = meas_package.timestamp_;
   }
+  cout << " DONE" << endl;
   
 }
 
@@ -167,6 +161,7 @@ void UKF::Prediction(double delta_t) {
   Complete this function! Estimate the object's location. Modify the state
   vector, x_. Predict sigma points, the state, and the state covariance matrix.
   */
+  cout << "1" << endl;
   VectorXd x_aug = VectorXd(n_aug_);
   x_aug << x_, 0, 0;
   //create augmented covariance matrix
@@ -184,9 +179,10 @@ void UKF::Prediction(double delta_t) {
     x_aug.replicate(1, n_aug_) + sqrt(lambda_ + n_aug_) * A,
     x_aug.replicate(1, n_aug_) - sqrt(lambda_ + n_aug_) *  A;  
 	
-	const float pi = 3.14159265;
+  cout << "2" << endl;
+	
   //predict sigma points
-  MatrixXd Xsig_pred_ = MatrixXd(n_x_, 2 * n_aug_ + 1);
+  Xsig_pred_ = MatrixXd(n_x_, 2 * n_aug_ + 1);  
   Xsig_pred_.fill(0);
   
   for (int i = 0; i < 2 * n_aug_ +1; i++)
@@ -210,22 +206,25 @@ void UKF::Prediction(double delta_t) {
         0.5*delta_t*delta_t * sin(psi) * va;
     }
     Xsig_pred_(2, i) = Xsig_aug(2, i) + delta_t * va;      
-    float psi_new	= Xsig_aug(3, i) + psi_dot * delta_t + 0.5 * delta_t * delta_t * vpsi;    
-    while (psi_new> pi) { psi_new -= 2 * pi;}
-    while (psi_new< -pi){ psi_new += 2 * pi;}	  
-    Xsig_pred_(3, i) = psi_new;
+    float psi_new	= Xsig_aug(3, i) + psi_dot * delta_t + 0.5 * delta_t * delta_t * vpsi;               
+    Xsig_pred_(3, i) = Tools::CalculateAngle(psi_new);
     Xsig_pred_(4, i) = Xsig_aug(4, i) + delta_t * vpsi;	
   }
+  
+  cout << "3" << endl;
   //predict state mean
   x_ = Xsig_pred_ * weights_;
   //predict state covariance matrix
   MatrixXd Xsig_pred_residue = Xsig_pred_ - x_.replicate(1, 2*n_aug_+1);
+  cout << "4" << endl;
   for (int i = 0; i < 2 * n_aug_ +1; i++) {
     
     while (Xsig_pred_residue(3, i) > pi) { Xsig_pred_residue(3, i) -= 2 * pi;}
     while (Xsig_pred_residue(3, i) < -pi){ Xsig_pred_residue(3, i) += 2 * pi;}	     
   }    
-  P_ = Xsig_pred_residue * weights_.asDiagonal() * Xsig_pred_residue.transpose();      
+  P_ = Xsig_pred_residue * weights_.asDiagonal() * Xsig_pred_residue.transpose();        
+  cout << "Prediction Finish" << endl;
+  return;
 }
 
 /**
@@ -241,9 +240,9 @@ void UKF::UpdateLidar(MeasurementPackage meas_package) {
 
   You'll also need to calculate the lidar NIS.
   */
-	MatrixXd H = MatrixXd(2,4);
-  H << 1, 0, 0, 0,
-	  0, 1, 0, 0;	  	
+	MatrixXd H = MatrixXd(2,5);
+  H << 1, 0, 0, 0, 0,
+	  0, 1, 0, 0, 0;  
 	VectorXd z = VectorXd(2);
 	z << meas_package.raw_measurements_[0], meas_package.raw_measurements_[1];		    
   MatrixXd R(2,2);
@@ -269,10 +268,10 @@ void UKF::UpdateRadar(MeasurementPackage meas_package) {
 
   You'll also need to calculate the radar NIS.
   */
-  // Get measurement
+  // Get measurement  
   VectorXd z = VectorXd(3);
-	z << meas_package.raw_measurements_[0], meas_package.raw_measurements_[1], meas_package.raw_measurements_[2];  
-  //transform sigma points into measurement space  
+	z << meas_package.raw_measurements_[0], meas_package.raw_measurements_[1], meas_package.raw_measurements_[2];      
+  //transform sigma points into measurement space    
   MatrixXd Zsig = MatrixXd(3, 2 * n_aug_ + 1);
   Zsig.fill(0);  
   for (int i=0; i< 2 * n_aug_ + 1; i++){
@@ -292,33 +291,34 @@ void UKF::UpdateRadar(MeasurementPackage meas_package) {
   }    
   //calculate mean predicted measurement
   
-  VectorXd z_pred = Zsig * weights_;
+  VectorXd z_pred = Zsig * weights_;  
   //calculate innovation covariance matrix S
   MatrixXd Z_residue = Zsig - z_pred.replicate(1, 2 * n_aug_ + 1);
-  const float pi = 3.14159265;
-  for (int i = 0; i < 2 * n_aug_ +1; i++) {    
-    while (Z_residue(1, i) > pi) { Z_residue(1, i) -= 2 * pi;}
-    while (Z_residue(1, i) < -pi){ Z_residue(1, i) += 2 * pi;}	     
-  } 
+  //const float pi = 3.14159265;  
+  for (int i = 0; i < 2 * n_aug_ +1; i++) {  
+    Z_residue(1, i) = Tools::CalculateAngle(Z_residue(1, i));  
+    //while (Z_residue(1, i) > pi) { Z_residue(1, i) = Z_residue(1, i) - 2 * pi;}
+    //while (Z_residue(1, i) < -pi){ Z_residue(1, i) = Z_residue(1, i) + 2 * pi;}	     
+  }   
   
   MatrixXd R(3,3);
   R << std_radr_*std_radr_, 0, 0,
     0, std_radphi_*std_radphi_, 0,
-    0, 0, std_radrd_*std_radrd_;
+    0, 0, std_radrd_*std_radrd_;  
+    
   MatrixXd S = Z_residue * weights_.asDiagonal() * Z_residue.transpose() + R;    
   
   //calculate cross correlation matrix
-  MatrixXd X_residue = Xsig_pred_ - x_.replicate(1, 2 * n_aug_ + 1);
-  
+  MatrixXd X_residue = Xsig_pred_ - x_.replicate(1, 2 * n_aug_ + 1);  
   for (int i = 0; i < 2 * n_aug_ +1; i++) {    
-    while (X_residue(3, i) > pi) { X_residue(3, i) -= 2 * pi;}
-    while (X_residue(3, i) < -pi){ X_residue(3, i) += 2 * pi;}	     
-  }      
-     
+    X_residue(1, i) = Tools::CalculateAngle(X_residue(1, i));  
+    //while (X_residue(3, i) > pi) { X_residue(3, i) = X_residue(3, i) - 2 * pi;}
+    //while (X_residue(3, i) < -pi){ X_residue(3, i) = X_residue(3, i) + 2 * pi;}	     
+  }        
   MatrixXd Tc = X_residue  *  weights_.asDiagonal() * Z_residue.transpose();
   //calculate Kalman gain K;
-  MatrixXd K = Tc * S.inverse();
+  MatrixXd K = Tc * S.inverse();  
   //update state mean and covariance matrix
   x_ = x_ + K * (z - z_pred);
-  P_ = P_ - K * S * K.transpose();  
+  P_ = P_ - K * S * K.transpose();    
 }

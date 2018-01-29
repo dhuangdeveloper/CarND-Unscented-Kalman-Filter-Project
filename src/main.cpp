@@ -107,7 +107,6 @@ int main()
           
           //Call ProcessMeasurment(meas_package) for Kalman filter
     	  ukf.ProcessMeasurement(meas_package);    	  
-		  cout << "T: finish Processing Measurements" << endl;
 
     	  //Push the current estimated x,y positon from the Kalman filter's state vector
 

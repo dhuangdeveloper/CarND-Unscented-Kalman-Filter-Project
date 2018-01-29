@@ -35,3 +35,19 @@ VectorXd Tools::CalculateRMSE(const vector<VectorXd> &estimations,
   rmse = rmse.array().sqrt();
   return rmse;
 }
+
+
+float Tools::CalculateAngle(float angle){
+  // Fold angle into -pi, pi range
+  const float pi = 3.14159265;
+  if (angle > pi) {
+    cout << "psi_new: " << angle << endl;
+    angle = angle - (1 + floor(angle / 2/ pi)) * 2 * pi;
+  }
+  
+  if (angle < -pi) {
+    cout << angle << endl;
+    cout << "psi_new: " << angle << endl;
+    angle = angle + (1 + floor((-angle) / 2/ pi)) * 2 * pi;
+  }    
+}

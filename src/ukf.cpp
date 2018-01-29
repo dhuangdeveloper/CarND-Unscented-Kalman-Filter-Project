@@ -1,7 +1,7 @@
 #include "ukf.h"
 #include "Eigen/Dense"
 #include <iostream>
-
+#include "tools.h"
 using namespace std;
 using Eigen::MatrixXd;
 using Eigen::VectorXd;
@@ -27,7 +27,7 @@ UKF::UKF() {
   P_ = MatrixXd(5, 5);
 
   // Process noise standard deviation longitudinal acceleration in m/s^2
-  std_a_ = 30;
+  std_a_ = 10;
 
   // Process noise standard deviation yaw acceleration in rad/s^2
   std_yawdd_ = 30;
@@ -87,8 +87,7 @@ void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
 
   Complete this function! Make sure you switch between lidar and radar
   measurements.
-  */
-  cout << "Pro" << endl;
+  */  
   /*********Initialization**********/    
   if (!is_initialized_) {   
     cout << "Initialize" << endl;  
@@ -130,10 +129,9 @@ void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
       // done initializing, no need to predict or update    
     return;
   }
-  /*********Prediction**********/    
-  cout << "Predict" << endl;
+  /*********Prediction**********/      
   Prediction((meas_package.timestamp_ - time_us_) / 1000000.0);  
-  cout << " DONE" << endl;
+  cout << "Predict : x_" << x_ << endl;
   /*********Update**********/
   
   if (meas_package.sensor_type_ == MeasurementPackage::RADAR) {     
@@ -144,9 +142,9 @@ void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
     cout << "LIDAR" << endl;
     UpdateLidar(meas_package);
     time_us_ = meas_package.timestamp_;
-  }
-  cout << " DONE" << endl;
-  
+  }  
+  cout << "Update: x_" << x_ << endl;
+  cout << "Update: P_" << P_ << endl;
 }
 
 /**
@@ -160,8 +158,7 @@ void UKF::Prediction(double delta_t) {
   
   Complete this function! Estimate the object's location. Modify the state
   vector, x_. Predict sigma points, the state, and the state covariance matrix.
-  */
-  cout << "1" << endl;
+  */  
   VectorXd x_aug = VectorXd(n_aug_);
   x_aug << x_, 0, 0;
   //create augmented covariance matrix
@@ -177,9 +174,7 @@ void UKF::Prediction(double delta_t) {
   MatrixXd Xsig_aug = MatrixXd(n_aug_, 2 * n_aug_ + 1);
   Xsig_aug << x_aug,
     x_aug.replicate(1, n_aug_) + sqrt(lambda_ + n_aug_) * A,
-    x_aug.replicate(1, n_aug_) - sqrt(lambda_ + n_aug_) *  A;  
-	
-  cout << "2" << endl;
+    x_aug.replicate(1, n_aug_) - sqrt(lambda_ + n_aug_) *  A;  	 
 	
   //predict sigma points
   Xsig_pred_ = MatrixXd(n_x_, 2 * n_aug_ + 1);  
@@ -210,20 +205,17 @@ void UKF::Prediction(double delta_t) {
     Xsig_pred_(3, i) = Tools::CalculateAngle(psi_new);
     Xsig_pred_(4, i) = Xsig_aug(4, i) + delta_t * vpsi;	
   }
-  
-  cout << "3" << endl;
+    
   //predict state mean
   x_ = Xsig_pred_ * weights_;
   //predict state covariance matrix
-  MatrixXd Xsig_pred_residue = Xsig_pred_ - x_.replicate(1, 2*n_aug_+1);
-  cout << "4" << endl;
+  MatrixXd Xsig_pred_residue = Xsig_pred_ - x_.replicate(1, 2*n_aug_+1);  
   for (int i = 0; i < 2 * n_aug_ +1; i++) {
-    
-    while (Xsig_pred_residue(3, i) > pi) { Xsig_pred_residue(3, i) -= 2 * pi;}
-    while (Xsig_pred_residue(3, i) < -pi){ Xsig_pred_residue(3, i) += 2 * pi;}	     
+    Xsig_pred_residue(3, i) = Tools::CalculateAngle(Xsig_pred_residue(3, i));  
+    //while (Xsig_pred_residue(3, i) > pi) { Xsig_pred_residue(3, i) -= 2 * pi;}
+    //while (Xsig_pred_residue(3, i) < -pi){ Xsig_pred_residue(3, i) += 2 * pi;}	     
   }    
-  P_ = Xsig_pred_residue * weights_.asDiagonal() * Xsig_pred_residue.transpose();        
-  cout << "Prediction Finish" << endl;
+  P_ = Xsig_pred_residue * weights_.asDiagonal() * Xsig_pred_residue.transpose();          
   return;
 }
 
@@ -311,7 +303,7 @@ void UKF::UpdateRadar(MeasurementPackage meas_package) {
   //calculate cross correlation matrix
   MatrixXd X_residue = Xsig_pred_ - x_.replicate(1, 2 * n_aug_ + 1);  
   for (int i = 0; i < 2 * n_aug_ +1; i++) {    
-    X_residue(1, i) = Tools::CalculateAngle(X_residue(1, i));  
+    X_residue(3, i) = Tools::CalculateAngle(X_residue(3, i));  
     //while (X_residue(3, i) > pi) { X_residue(3, i) = X_residue(3, i) - 2 * pi;}
     //while (X_residue(3, i) < -pi){ X_residue(3, i) = X_residue(3, i) + 2 * pi;}	     
   }        

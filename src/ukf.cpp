@@ -30,7 +30,7 @@ UKF::UKF() {
   std_a_ = 10;
 
   // Process noise standard deviation yaw acceleration in rad/s^2
-  std_yawdd_ = 30;
+  std_yawdd_ = 3;
   
   //DO NOT MODIFY measurement noise values below these are provided by the sensor manufacturer.
   // Laser measurement noise standard deviation position1 in m
@@ -211,9 +211,7 @@ void UKF::Prediction(double delta_t) {
   //predict state covariance matrix
   MatrixXd Xsig_pred_residue = Xsig_pred_ - x_.replicate(1, 2*n_aug_+1);  
   for (int i = 0; i < 2 * n_aug_ +1; i++) {
-    Xsig_pred_residue(3, i) = Tools::CalculateAngle(Xsig_pred_residue(3, i));  
-    //while (Xsig_pred_residue(3, i) > pi) { Xsig_pred_residue(3, i) -= 2 * pi;}
-    //while (Xsig_pred_residue(3, i) < -pi){ Xsig_pred_residue(3, i) += 2 * pi;}	     
+    Xsig_pred_residue(3, i) = Tools::CalculateAngle(Xsig_pred_residue(3, i));    
   }    
   P_ = Xsig_pred_residue * weights_.asDiagonal() * Xsig_pred_residue.transpose();          
   return;
@@ -286,11 +284,9 @@ void UKF::UpdateRadar(MeasurementPackage meas_package) {
   VectorXd z_pred = Zsig * weights_;  
   //calculate innovation covariance matrix S
   MatrixXd Z_residue = Zsig - z_pred.replicate(1, 2 * n_aug_ + 1);
-  //const float pi = 3.14159265;  
+
   for (int i = 0; i < 2 * n_aug_ +1; i++) {  
-    Z_residue(1, i) = Tools::CalculateAngle(Z_residue(1, i));  
-    //while (Z_residue(1, i) > pi) { Z_residue(1, i) = Z_residue(1, i) - 2 * pi;}
-    //while (Z_residue(1, i) < -pi){ Z_residue(1, i) = Z_residue(1, i) + 2 * pi;}	     
+    Z_residue(1, i) = Tools::CalculateAngle(Z_residue(1, i));     
   }   
   
   MatrixXd R(3,3);
@@ -304,8 +300,6 @@ void UKF::UpdateRadar(MeasurementPackage meas_package) {
   MatrixXd X_residue = Xsig_pred_ - x_.replicate(1, 2 * n_aug_ + 1);  
   for (int i = 0; i < 2 * n_aug_ +1; i++) {    
     X_residue(3, i) = Tools::CalculateAngle(X_residue(3, i));  
-    //while (X_residue(3, i) > pi) { X_residue(3, i) = X_residue(3, i) - 2 * pi;}
-    //while (X_residue(3, i) < -pi){ X_residue(3, i) = X_residue(3, i) + 2 * pi;}	     
   }        
   MatrixXd Tc = X_residue  *  weights_.asDiagonal() * Z_residue.transpose();
   //calculate Kalman gain K;

@@ -23,7 +23,7 @@ public:
   * A helper method to calculate RMSE.
   */
   static VectorXd CalculateRMSE(const vector<VectorXd> &estimations, const vector<VectorXd> &ground_truth);
-  static float CalculateAngle(float angle);
+  static float FoldAngle(float angle, float center_angle);
 
 };
 

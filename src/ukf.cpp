@@ -134,8 +134,8 @@ void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
   cout << "counter " << counter_debug_ <<endl;
   /*********Prediction**********/      
   Prediction((meas_package.timestamp_ - time_us_) / 1000000.0);  
-  cout << "Predict : x_" << x_ << endl;
-   cout << "Predict: P_" << P_ << endl;
+  //cout << "Predict : x_" << x_ << endl;
+  //cout << "Predict: P_" << P_ << endl;
   /*********Update**********/
   
   if (meas_package.sensor_type_ == MeasurementPackage::RADAR) {     
@@ -255,6 +255,8 @@ void UKF::UpdateLidar(MeasurementPackage meas_package) {
   x_(3) = Tools::FoldAngle(x_(3), 0);    
   
   P_ = P_ - K * H * P_;
+  float NIS = y.transpose() * S.inverse() * y;
+  
 }
 
 /**
@@ -293,11 +295,11 @@ void UKF::UpdateRadar(MeasurementPackage meas_package) {
     }
   }    
   //calculate mean predicted measurement
-  cout << "z " << z << endl;
-  cout << "Zsig " << Zsig << endl;
+  //cout << "z " << z << endl;
+  //cout << "Zsig " << Zsig << endl;
   VectorXd z_pred = Zsig * weights_;  
   //calculate innovation covariance matrix S
-  cout << "z_pred " << z_pred << endl;
+  //cout << "z_pred " << z_pred << endl;
   MatrixXd Z_residue = Zsig - z_pred.replicate(1, 2 * n_aug_ + 1);
 
   for (int i = 0; i < 2 * n_aug_ +1; i++) {  
@@ -308,7 +310,7 @@ void UKF::UpdateRadar(MeasurementPackage meas_package) {
   R << std_radr_*std_radr_, 0, 0,
     0, std_radphi_*std_radphi_, 0,
     0, 0, std_radrd_*std_radrd_;  
-  cout << "Z_residue " << Z_residue << endl;
+  //cout << "Z_residue " << Z_residue << endl;
   MatrixXd S = Z_residue * weights_.asDiagonal() * Z_residue.transpose() + R;    
   
   //calculate cross correlation matrix
@@ -316,18 +318,19 @@ void UKF::UpdateRadar(MeasurementPackage meas_package) {
   for (int i = 0; i < 2 * n_aug_ +1; i++) {    
     X_residue(3, i) = Tools::FoldAngle(X_residue(3, i), 0);  
   }        
-  cout << "Xsig_pred_ " << Xsig_pred_ << endl;
-  cout << "X_residue " << X_residue << endl;
+  //cout << "Xsig_pred_ " << Xsig_pred_ << endl;
+  //cout << "X_residue " << X_residue << endl;
   MatrixXd Tc = X_residue  *  weights_.asDiagonal() * Z_residue.transpose();
-  cout << "Tc " << Tc << endl;
+  //cout << "Tc " << Tc << endl;
   //calculate Kalman gain K;
   MatrixXd K = Tc * S.inverse();  
   cout << "K " << K << endl;
   //update state mean and covariance matrix
-  VectorXd z_diff = z - z_pred;
-  z_diff(1) = Tools::FoldAngle(z_diff(1), 0); 
-  x_ = x_ + K * z_diff;
-  cout << "Kzbar " << K * z_diff << endl;
+  VectorXd y = z - z_pred;
+  y(1) = Tools::FoldAngle(y(1), 0);    
+  x_ = x_ + K * y;
   x_(3) = Tools::FoldAngle(x_(3), 0);  
   P_ = P_ - K * S * K.transpose();    
+  float NIS = y.transpose() * S.inverse() * y;  
+  cout << "NIS: " << NIS << endl;
 }

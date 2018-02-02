@@ -13,7 +13,7 @@ using Eigen::VectorXd;
 class UKF {
 public:
 
-  int counter_debug_;
+  //int counter_debug_; // used for debuging
 
   ///* initially set to false, set to true in first call of ProcessMeasurement
   bool is_initialized_;

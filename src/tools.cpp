@@ -38,18 +38,18 @@ VectorXd Tools::CalculateRMSE(const vector<VectorXd> &estimations,
 
 
 float Tools::FoldAngle(float angle, float center_angle){
-  // Fold angle into -pi, pi range
+  // Fold angle into center_angle-pi, center_angle+pi range
   const float pi = 3.14159265;
   if (angle > center_angle+pi) {    
-    cout << angle;
+    //cout << angle;
     angle = angle - ceil((angle-pi-center_angle) / pi/2) * 2 * pi;    
-    cout << "->" << angle << endl;
+    //cout << "->" << angle << endl;
   }
   
   if (angle < center_angle-pi) {        
-    cout << angle;
+    //cout << angle;
     angle = angle + ceil((center_angle-pi-angle) / pi/2) * 2 * pi;    
-    cout << "->" << angle << endl;
+    //cout << "->" << angle << endl;
   }      
   return angle;
 }
